@@ -2,13 +2,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_anthropic import ChatAnthropic
 from langgraph.graph import StateGraph, END
 
-from src.soda.types import (
-AgentOptimizationState,
-CritiqueOutput,
-RefinementOutput,
-TaskAnalysisOutput,
-)
-
+from src.soda.types import AgentOptimizationState, CritiqueOutput,RefinementOutput,TaskAnalysisOutput
 
 
 def task_analyzer_node(state: AgentOptimizationState) -> AgentOptimizationState:
