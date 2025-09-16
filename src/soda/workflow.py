@@ -119,8 +119,8 @@ def should_refine(state: AgentOptimizationState, config: RunnableConfig) -> str:
     """Decide whether to refine or finalize based on score and iteration count."""
     configurables = config.get("configurable", {})
     quality_threshold = configurables.get("quality_threshold", 8.0)
-    max_refine_itterations = configurables.get("max_refine_itterations", 3)
-    if state["score"] >= quality_threshold or state.get("iteration", 0) >= max_refine_itterations:
+    max_refine_iterations = configurables.get("max_refine_iterations", 3)
+    if state["score"] >= quality_threshold or state.get("iteration", 0) >= max_refine_iterations:
         return "finalize"
     else:
         return "refine"
