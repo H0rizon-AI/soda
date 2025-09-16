@@ -2,7 +2,14 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_anthropic import ChatAnthropic
 from langgraph.graph import StateGraph, END
 
-from src.soda.types import AgentOptimizationState, CritiqueOutput,RefinementOutput,TaskAnalysisOutput
+from soda.types import AgentOptimizationState, CritiqueOutput, RefinementOutput, TaskAnalysisOutput
+from soda.prompts import (
+    TASK_ANALYSIS_PROMPT,
+    CRITIQUE_PROMPT,
+    REFINEMENT_PROMPT,
+    format_agents_for_prompt,
+    format_improvements_for_prompt
+)
 
 
 def task_analyzer_node(state: AgentOptimizationState) -> AgentOptimizationState:
@@ -11,29 +18,7 @@ def task_analyzer_node(state: AgentOptimizationState) -> AgentOptimizationState:
     llm = ChatAnthropic(model="claude-sonnet-4-20250514", temperature=0.7, max_tokens=8192)
     structured_llm = llm.with_structured_output(TaskAnalysisOutput)
 
-    analysis_prompt = f"""
-    Given this task: "{state['task']}"
-
-    Analyze the task and generate:
-    1. A list of sub-agents needed to complete this task
-    2. An orchestration strategy that explains how these agents should work together
-
-    For each sub-agent, provide:
-    - name: A clear, specific name for the sub-agent
-    - description: What this agent does (visible to other agents)
-    - prompt: The internal system prompt for this specific agent
-
-    Think about:
-    - What are the distinct capabilities needed?
-    - How should work be divided?
-    - What are the dependencies between agents?
-    - What's the optimal workflow?
-    - How can the file system be leveraged? 
-    - What is the final return of this Particular Agent when its finished?
-
-    Make sure each sub-agent has a clear, specific role and the orchestration strategy
-    explains the complete workflow from start to finish.
-    """
+    analysis_prompt = TASK_ANALYSIS_PROMPT.format(task=state['task'])
 
     response = structured_llm.invoke([HumanMessage(content=analysis_prompt)])
 
@@ -52,38 +37,13 @@ def critic_node(state: AgentOptimizationState) -> AgentOptimizationState:
     structured_llm = llm.with_structured_output(CritiqueOutput)
 
     # Format sub-agents for the prompt
-    agents_text = "\n".join([
-        f"Agent: {agent.name}\n"
-        f"Description: {agent.description}\n"
-        f"Prompt: {agent.prompt}\n"
-        for agent in state["sub_agents"]
-    ])
+    agents_text = format_agents_for_prompt(state["sub_agents"])
 
-    critique_prompt = f"""
-    Original Task: "{state['task']}"
-
-    Generated Sub-Agents:
-    {agents_text}
-
-    Orchestration Strategy:
-    {state['orchestration_strategy']}
-
-    Please critique this agent design on the following dimensions:
-
-    1. **Completeness**: Do these agents cover all aspects of the task?
-    2. **Clarity**: Are the agent roles and prompts clear and specific?
-    3. **Efficiency**: Is the work divided optimally? Any redundancy or gaps?
-    4. **Coordination**: Will these agents work well together? Clear handoffs?
-    5. **Feasibility**: Are the individual agent responsibilities realistic?
-
-    Provide:
-    - A score from 1-10 (10 being perfect)
-    - Detailed analysis of strengths and weaknesses
-    - Concrete suggestions for better agent design
-
-    Consider the complexity of the original task and whether this agent design
-    appropriately handles that complexity.
-    """
+    critique_prompt = CRITIQUE_PROMPT.format(
+        task=state['task'],
+        agents_text=agents_text,
+        orchestration_strategy=state['orchestration_strategy']
+    )
 
     response = structured_llm.invoke([HumanMessage(content=critique_prompt)])
 
@@ -105,40 +65,18 @@ def refinement_node(state: AgentOptimizationState) -> AgentOptimizationState:
     llm = ChatAnthropic(model="claude-sonnet-4-20250514", temperature=0.7, max_tokens=8192)
     structured_llm = llm.with_structured_output(RefinementOutput)
 
-    # Format current agents for refinement
-    agents_text = "\n".join([
-        f"Agent: {agent.name}\n"
-        f"Description: {agent.description}\n"
-        f"Prompt: {agent.prompt}\n"
-        for agent in state["sub_agents"]
-    ])
+    # Format current agents and improvements for refinement
+    agents_text = format_agents_for_prompt(state["sub_agents"])
+    improvements_text = format_improvements_for_prompt(state["improvements"])
 
-    improvements_text = "\n".join([f"- {improvement}" for improvement in state["improvements"]])
-
-    refinement_prompt = f"""
-    Original Task: "{state['task']}"
-
-    Current Sub-Agents:
-    {agents_text}
-
-    Current Orchestration Strategy:
-    {state['orchestration_strategy']}
-
-    Critique (Score: {state['score']}/10):
-    {state['critique']}
-
-    Specific Improvements Needed:
-    {improvements_text}
-
-    Based on the critique and specific improvement suggestions, improve the agent design. 
-    Address the specific issues raised and create a better agent architecture.
-
-    Focus on:
-    - Fixing identified gaps or redundancies
-    - Improving role clarity and coordination
-    - Enhancing the orchestration strategy
-    - Making agent prompts more specific and actionable
-    """
+    refinement_prompt = REFINEMENT_PROMPT.format(
+        task=state['task'],
+        agents_text=agents_text,
+        orchestration_strategy=state['orchestration_strategy'],
+        score=state['score'],
+        critique=state['critique'],
+        improvements_text=improvements_text
+    )
 
     response = structured_llm.invoke([HumanMessage(content=refinement_prompt)])
 
@@ -217,14 +155,13 @@ def create_agent_optimizer_graph():
     return workflow.compile()
 
 
-def optimize_agents_for_task(task: str, max_iterations: int = MAX_ITERATIONS,
-                             quality_threshold: float = QUALITY_THRESHOLD):
+def optimize_agents_for_task(task: str, max_iterations: int = None,
+                             quality_threshold: float = None):
     """Run the full optimization process for a given task."""
 
-    # Update global config if different values provided
-    global MAX_ITERATIONS, QUALITY_THRESHOLD
-    MAX_ITERATIONS = max_iterations
-    QUALITY_THRESHOLD = quality_threshold
+    # Use config defaults if no values provided
+    max_iter = max_iterations or MAX_ITERATIONS
+    quality_thresh = quality_threshold or QUALITY_THRESHOLD
 
     graph = create_agent_optimizer_graph()
 
