@@ -217,7 +217,6 @@ def create_agent_optimizer_graph():
     return workflow.compile()
 
 
-# Usage example
 def optimize_agents_for_task(task: str, max_iterations: int = MAX_ITERATIONS,
                              quality_threshold: float = QUALITY_THRESHOLD):
     """Run the full optimization process for a given task."""
