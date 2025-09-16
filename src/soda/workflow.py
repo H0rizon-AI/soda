@@ -1,4 +1,5 @@
 from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_anthropic import ChatAnthropic
 from langgraph.graph import StateGraph, END
 
@@ -55,7 +56,7 @@ def critic_node(state: AgentOptimizationState) -> AgentOptimizationState:
     }
 
 
-def refinement_node(state: AgentOptimizationState) -> AgentOptimizationState:
+def refinement_node(state: AgentOptimizationState, ) -> AgentOptimizationState:
     """Refine the agents and strategy based on critique if score is too low."""
 
     if state["score"] >= QUALITY_THRESHOLD:
@@ -114,9 +115,12 @@ def finalizer_node(state: AgentOptimizationState) -> AgentOptimizationState:
     }
 
 
-def should_refine(state: AgentOptimizationState) -> str:
+def should_refine(state: AgentOptimizationState, config: RunnableConfig) -> str:
     """Decide whether to refine or finalize based on score and iteration count."""
-    if state["score"] >= QUALITY_THRESHOLD or state.get("iteration", 0) >= MAX_ITERATIONS:
+    configurables = config.get("configurable", {})
+    quality_threshold = configurables.get("quality_threshold", 8.0)
+    max_refine_itterations = configurables.get("max_refine_itterations", 3)
+    if state["score"] >= quality_threshold or state.get("iteration", 0) >= max_refine_itterations:
         return "finalize"
     else:
         return "refine"
@@ -153,28 +157,3 @@ def create_agent_optimizer_graph():
     workflow.add_edge("finalize", END)
 
     return workflow.compile()
-
-
-def optimize_agents_for_task(task: str, max_iterations: int = None,
-                             quality_threshold: float = None):
-    """Run the full optimization process for a given task."""
-
-    # Use config defaults if no values provided
-    max_iter = max_iterations or MAX_ITERATIONS
-    quality_thresh = quality_threshold or QUALITY_THRESHOLD
-
-    graph = create_agent_optimizer_graph()
-
-    initial_state = AgentOptimizationState(
-        task=task,
-        sub_agents=[],
-        orchestration_strategy="",
-        critique="",
-        score=0.0,
-        improvements=[],
-        iteration=0,
-        final_output={}
-    )
-
-    result = graph.invoke(initial_state)
-    return result["final_output"]
