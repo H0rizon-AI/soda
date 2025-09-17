@@ -33,10 +33,33 @@ print(optimal_research_subagents["orchestration_strategy"]) # optimal Deep Agent
 ```
 
 Once the above is complete create your `DeepAgent` as follows
+(NOTE: For the following run `pip install tavily-python` before if `tavily` isn't available.)
 
 ```python
+import os
+from typing import Literal
+
+from tavily import TavilyClient
 from deepagents import create_deep_agent
-tools = .... # Any tools you will need
+
+tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+
+# Search tool to use to do research
+def internet_search(
+    query: str,
+    max_results: int = 5,
+    topic: Literal["general", "news", "finance"] = "general",
+    include_raw_content: bool = False,
+):
+    """Run a web search"""
+    return tavily_client.search(
+        query,
+        max_results=max_results,
+        include_raw_content=include_raw_content,
+        topic=topic,
+    )
+
+tools = [internet_search]
 
 deep_agent = create_deep_agent(
     tools,
