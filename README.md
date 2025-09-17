@@ -68,7 +68,7 @@ deep_agent = create_deep_agent(
 )
 
 # Invoke the agent
-result = deep_agent.invoke({"messages": [{"role": "user", "content": "what is langChain Deep Agents?"}]})
+result = deep_agent.invoke({"messages": [{"role": "user", "content": "Write a detailed report on what is langChain Deep Agents and compare it to other similar tools."}]})
 ```
 
 ## Roadmap
