@@ -74,6 +74,7 @@ result = deep_agent.invoke({"messages": [{"role": "user", "content": "what is la
 ## Roadmap
 - [ ] Add a GUI for manging and optimizing Sub-agents 
 - [ ] Create a registry system that can keep track of sub-agents and a CLI tool 
+- [ ] Explore auto-tool creation & discovery for sub-agents 
 - [ ] Add Benchmarks for sub-agent performance and optimization
 - [ ] Add feature(s) for life-long learning and refining existing Sub-agents based on task performance
 
