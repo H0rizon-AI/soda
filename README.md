@@ -62,9 +62,9 @@ def internet_search(
 tools = [internet_search]
 
 deep_agent = create_deep_agent(
-    tools,
-    optimal_research_subagents["orchestration_strategy"], # Optimal prompt
-    optimal_research_subagents["sub_agents"] # Optimal sub-agents
+    tools = tools,
+    instructions = optimal_research_subagents["orchestration_strategy"], # Optimal prompt
+    subagents = optimal_research_subagents["sub_agents"] # Optimal sub-agents
 )
 
 # Invoke the agent
