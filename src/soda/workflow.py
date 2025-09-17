@@ -56,10 +56,12 @@ def critic_node(state: AgentOptimizationState) -> AgentOptimizationState:
     }
 
 
-def refinement_node(state: AgentOptimizationState, ) -> AgentOptimizationState:
+def refinement_node(state: AgentOptimizationState, config: RunnableConfig) -> AgentOptimizationState:
     """Refine the agents and strategy based on critique if score is too low."""
+    configurables = config.get("configurable", {})
+    quality_threshold = configurables.get("quality_threshold", 8.0)
 
-    if state["score"] >= QUALITY_THRESHOLD:
+    if state["score"] >= quality_threshold:
         # Good enough, proceed to final output
         return state
 
