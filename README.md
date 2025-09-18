@@ -18,7 +18,7 @@ pip install -e .
 
 ## Usage
 
-Here is how to find the optimal sub-agents and prompt for your deep agent based on the your specific task
+Here is how to find the optimal sub-agents and prompt for your deep agent based on your specific task
 (NOTE: Currently, leverages `anthropic claude` so set your `ANTHROPIC_API_KEY` variable)
 
 ```python
